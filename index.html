@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="MedicationChecker - 薬チェック管理アプリ">
+    <title>MedicationChecker</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+            color: #333;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .pill-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #999 0%, #666 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .tab-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: #f0f0f0;
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #999;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .medicine-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid #999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .medicine-card.taken {
+            opacity: 0.6;
+            border-left-color: #ddd;
+        }
+
+        .medicine-card.overdue {
+            background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+            border-left-color: #999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .medicine-time {
+            font-size: 24px;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .medicine-name {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .medicine-status {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .medicine-status.overdue {
+            color: #999;
+            font-weight: 600;
+        }
+
+        .medicine-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #666;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #555;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .settings-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="time"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="time"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #666;
+            box-shadow: 0 0 0 3px rgba(102, 102, 102, 0.1);
+        }
+
+        .medicine-input-group {
+            display: grid;
+            gap: 12px;
+            background: #f9f9f9;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .medicine-list {
+            margin-top: 16px;
+        }
+
+        .medicine-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #999;
+        }
+
+        .medicine-item-info {
+            flex: 1;
+        }
+
+        .medicine-item-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .medicine-item-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .btn-delete {
+            padding: 8px 12px;
+            background: #e8e8e8;
+            color: #999;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete:hover {
+            background: #d0d0d0;
+            color: #666;
+        }
+
+        .gpt-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .gpt-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #999 0%, #666 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            margin: 0 auto 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .gpt-title {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #666;
+            box-shadow: 0 0 0 3px rgba(102, 102, 102, 0.1);
+        }
+
+        .gpt-response {
+            background: #f9f9f9;
+            border-left: 4px solid #999;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .error-message {
+            background: #fff0f0;
+            border-left: 4px solid #d0d0d0;
+            padding: 12px;
+            border-radius: 8px;
+            color: #666;
+            font-size: 13px;
+            margin-top: 12px;
+        }
+
+        .notification-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #f0f0f0;
+            border-bottom: 2px solid #999;
+            padding: 16px;
+            text-align: center;
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <div class="pill-icon">💊</div>
+                MedicationChecker
+            </h1>
+        </div>
+
+        <div class="tab-container">
+            <button class="tab-btn active" onclick="switchTab('today')">今日の薬</button>
+            <button class="tab-btn" onclick="switchTab('settings')">設定</button>
+            <button class="tab-btn" onclick="switchTab('gpt')">相談</button>
+        </div>
+
+        <div id="today" class="tab-content active">
+            <div id="todayContainer"></div>
+        </div>
+
+        <div id="settings" class="tab-content">
+            <div class="settings-section">
+                <div class="section-title">🔑 APIキー設定</div>
+                <div class="form-group">
+                    <label class="form-label">OpenAI APIキー</label>
+                    <input type="text" id="apiKey" placeholder="sk-..." onchange="saveSettings()">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-title">💊 薬の追加</div>
+                <div class="medicine-input-group">
+                    <div class="form-group">
+                        <label class="form-label">薬の名前</label>
+                        <input type="text" id="medicineName" placeholder="例：血圧の薬">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">飲む時間</label>
+                        <input type="time" id="medicineTime">
+                    </div>
+                    <button class="btn btn-primary" onclick="addMedicine()" style="width: 100%;">追加</button>
+                </div>
+
+                <div class="medicine-list" id="medicineList"></div>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-title">⚙️ その他</div>
+                <button class="btn btn-secondary" onclick="exportData()" style="width: 100%; margin-bottom: 8px;">
+                    💾 データをエクスポート
+                </button>
+                <button class="btn btn-secondary" onclick="importData()" style="width: 100%;">
+                    📥 データをインポート
+                </button>
+            </div>
+        </div>
+
+        <div id="gpt" class="tab-content">
+            <div class="gpt-container">
+                <div class="gpt-icon">🤖</div>
+                <div class="gpt-title">GPTに相談</div>
+                <div class="form-group">
+                    <label class="form-label">質問を入力してください</label>
+                    <textarea id="gptQuestion" placeholder="薬についての質問や健康相談など..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="askGPT()" style="width: 100%;">相談する</button>
+                <div id="gptResponse"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js').catch(err => console.log('SW registration failed'));
+        }
+
+        const DB_KEY = 'medicationCheckerApp';
+        
+        function loadData() {
+            const data = localStorage.getItem(DB_KEY);
+            return data ? JSON.parse(data) : {
+                medicines: [],
+                apiKey: '',
+                records: {},
+                notificationHistory: {}
+            };
+        }
+
+        function saveData(data) {
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+        }
+
+        function saveSettings() {
+            const data = loadData();
+            data.apiKey = document.getElementById('apiKey').value;
+            saveData(data);
+            showNotification('設定を保存しました');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'today') {
+                renderToday();
+            } else if (tabName === 'settings') {
+                renderSettings();
+            }
+        }
+
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toTimeString().slice(0, 5);
+        }
+
+        function isOverdue(medicineTime) {
+            const [medHour, medMin] = medicineTime.split(':').map(Number);
+            const [curHour, curMin] = getCurrentTime().split(':').map(Number);
+            const medTimeInMinutes = medHour * 60 + medMin;
+            const curTimeInMinutes = curHour * 60 + curMin;
+            return curTimeInMinutes > medTimeInMinutes;
+        }
+
+        function renderToday() {
+            const data = loadData();
+            const container = document.getElementById('todayContainer');
+            
+            if (data.medicines.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">
+                            薬を設定してください<br>
+                            設定タブから薬を追加できます
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            const todayRecords = data.records[today] || {};
+
+            container.innerHTML = data.medicines.map((med, idx) => {
+                const recordKey = `med_${idx}`;
+                const isTaken = todayRecords[recordKey];
+                const takenTime = todayRecords[`${recordKey}_time`];
+                const overdue = isOverdue(med.time) && !isTaken;
+
+                return `
+                    <div class="medicine-card ${isTaken ? 'taken' : ''} ${overdue ? 'overdue' : ''}">
+                        <div class="medicine-time">${med.time}</div>
+                        <div class="medicine-name">${med.name}</div>
+                        <div class="medicine-status ${overdue ? 'overdue' : ''}">
+                            ${isTaken ? `✅ 飲みました (${takenTime})` : (overdue ? '⏰ 時間を超過しています' : '未確認')}
+                        </div>
+                        <div class="medicine-actions">
+                            <button class="btn btn-primary" onclick="markTaken(${idx})" ${isTaken ? 'disabled' : ''}>
+                                ${isTaken ? '✓ 確認済み' : '飲んだ'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function markTaken(index) {
+            const data = loadData();
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (!data.records[today]) {
+                data.records[today] = {};
+            }
+
+            const now = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            data.records[today][`med_${index}`] = true;
+            data.records[today][`med_${index}_time`] = now;
+
+            saveData(data);
+            renderToday();
+            showNotification('記録しました ✓');
+        }
+
+        function renderSettings() {
+            const data = loadData();
+            document.getElementById('apiKey').value = data.apiKey;
+            renderMedicineList();
+        }
+
+        function renderMedicineList() {
+            const data = loadData();
+            const list = document.getElementById('medicineList');
+
+            if (data.medicines.length === 0) {
+                list.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">薬が登録されていません</p>';
+                return;
+            }
+
+            list.innerHTML = data.medicines.map((med, idx) => `
+                <div class="medicine-item">
+                    <div class="medicine-item-info">
+                        <div class="medicine-item-name">${med.name}</div>
+                        <div class="medicine-item-time">⏰ ${med.time}</div>
+                    </div>
+                    <button class="btn-delete" onclick="deleteMedicine(${idx})">削除</button>
+                </div>
+            `).join('');
+        }
+
+        function addMedicine() {
+            const name = document.getElementById('medicineName').value.trim();
+            const time = document.getElementById('medicineTime').value;
+
+            if (!name || !time) {
+                showNotification('⚠️ 薬の名前と時間を入力してください');
+                return;
+            }
+
+            const data = loadData();
+            data.medicines.push({ name, time });
+            data.medicines.sort((a, b) => a.time.localeCompare(b.time));
+            saveData(data);
+
+            document.getElementById('medicineName').value = '';
+            document.getElementById('medicineTime').value = '';
+            renderMedicineList();
+            showNotification('薬を追加しました');
+        }
+
+        function deleteMedicine(index) {
+            if (confirm('この薬を削除してもいいですか？')) {
+                const data = loadData();
+                data.medicines.splice(index, 1);
+                saveData(data);
+                renderMedicineList();
+                showNotification('薬を削除しました');
+            }
+        }
+
+        async function askGPT() {
+            const data = loadData();
+            const question = document.getElementById('gptQuestion').value.trim();
+            const responseDiv = document.getElementById('gptResponse');
+
+            if (!data.apiKey) {
+                responseDiv.innerHTML = `
+                    <div class="error-message">
+                        ⚠️ APIキーを設定してください
+                    </div>
+                `;
+                return;
+            }
+
+            if (!question) {
+                responseDiv.innerHTML = `
+                    <div class="error-message">
+                        ⚠️ 質問を入力してください
+                    </div>
+                `;
+                return;
+            }
+
+            responseDiv.innerHTML = '<div class="loading">🔄 回答中...</div>';
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${data.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: '健康に関するアドバイスを行うアシスタントです。医学的に正確で、わかりやすい説明を心がけてください。'
+                            },
+                            {
+                                role: 'user',
+                                content: question
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const answer = result.choices[0].message.content;
+
+                responseDiv.innerHTML = `
+                    <div class="gpt-response">
+                        ${answer}
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div class="error-message">
+                        ❌ エラーが発生しました: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function exportData() {
+            const data = loadData();
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `MedicationChecker-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showNotification('ダウンロードしました');
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        saveData(data);
+                        showNotification('データをインポートしました');
+                        renderSettings();
+                    } catch (error) {
+                        showNotification('❌ ファイルが無効です');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function showNotification(message) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.classList.add('notification-banner');
+            setTimeout(() => {
+                notif.classList.remove('notification-banner');
+            }, 3000);
+        }
+
+        function sendNotification(title, body) {
+            if (Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: body,
+                    icon: '💊'
+                });
+            }
+        }
+
+        function checkNotifications() {
+            const data = loadData();
+            const currentTime = getCurrentTime();
+            const today = new Date().toISOString().split('T')[0];
+            const todayRecords = data.records[today] || {};
+
+            if (!data.notificationHistory[today]) {
+                data.notificationHistory[today] = {};
+            }
+
+            data.medicines.forEach((med, idx) => {
+                const recordKey = `med_${idx}`;
+                const isTaken = todayRecords[recordKey];
+                const notifKey = `notif_${idx}`;
+                const alreadyNotified = data.notificationHistory[today][notifKey];
+
+                if (!isTaken) {
+                    if (isOverdue(med.time) && !alreadyNotified) {
+                        showNotification(`⏰ ${med.name}を飲んでください`);
+                        sendNotification('MedicationChecker', `${med.time}に${med.name}を飲む予定でした`);
+                        data.notificationHistory[today][notifKey] = true;
+                        saveData(data);
+                    }
+                }
+            });
+        }
+
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        renderToday();
+        setInterval(checkNotifications, 60000);
+    </script>
+</body>
+</html>
